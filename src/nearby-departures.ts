@@ -88,7 +88,7 @@ async function getClosestLineStopsWithWalkingDuration(
   const closestLinePromises = closestLineStops.map(async (lineStopPair) => {
     const directionsResponse = await googleMapsClient.directions({
       params: {
-        key: "AIzaSyB90LChhhQpdYIbBBaDjrybtvR2UKdRQbM",
+        key: process.env.GOOGLE_MAPS_API_KEY,
         origin: userLocation,
         destination: lineStopPair.stop.location,
         mode: TravelMode.walking,

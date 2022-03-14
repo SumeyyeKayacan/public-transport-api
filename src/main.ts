@@ -1,6 +1,9 @@
-import express from "express";
 import cors from "cors";
+import dotenv from "dotenv";
+import express from "express";
 import { getNearByDepartures } from "./nearby-departures";
+
+dotenv.config();
 
 const app = express();
 const port = 8090;
