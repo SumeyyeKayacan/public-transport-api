@@ -25,4 +25,11 @@ export interface Departure {
   delay: number;
   direction: string;
   line: Line;
+  walkingDuration?: number;
+}
+
+export interface LineStopPair {
+  stop: Stop;
+  lineId: string;
+  walkingDuration?: number;
 }

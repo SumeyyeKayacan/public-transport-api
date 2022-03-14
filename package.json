@@ -12,6 +12,7 @@
   "author": "Can Kayacan",
   "license": "ISC",
   "dependencies": {
+    "@googlemaps/google-maps-services-js": "^3.3.10",
     "@types/express": "^4.17.13",
     "@types/lodash": "^4.14.176",
     "cors": "^2.8.5",

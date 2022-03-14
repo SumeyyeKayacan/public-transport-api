@@ -1,9 +1,11 @@
+import { Client, TravelMode } from "@googlemaps/google-maps-services-js";
 import createClient from "hafas-client";
 import vbbProfile from "hafas-client/p/vbb";
 import _ from "lodash";
-import { Departure, Location } from "./types";
+import { Departure, LineStopPair, Location } from "./types";
 
 const client = createClient(vbbProfile, "my-awesome-program");
+const mapsClient = new Client({});
 
 async function getNearByStops(
   { latitude, longitude }: Location,
@@ -44,11 +46,12 @@ async function getDeparturesByStation(stationId: string) {
 function getClosestLineStopPairs(
   allDepartures: Departure[],
   userLocation: Location
-) {
-  const closestLineStopPairs = [];
+): LineStopPair[] {
+  const closestLineStopPairs: LineStopPair[] = [];
 
   const lineIds = _.uniq(allDepartures.map((d) => d.line.id));
 
+  console.log(lineIds);
   lineIds.forEach((lineId) => {
     const lineDepartures = allDepartures.filter((d) => d.line.id === lineId);
     const closestLineDeparture = lineDepartures.reduce(
@@ -69,7 +72,7 @@ function getClosestLineStopPairs(
     );
     const closestLineStop = closestLineDeparture.stop;
     closestLineStopPairs.push({
-      stopId: closestLineStop.id,
+      stop: closestLineStop,
       lineId,
     });
   });
@@ -97,15 +100,40 @@ export async function getNearByDepartures(
 
   const allDepartures = await getAllDepartures(stops);
 
-  const closestLineStopPairs = getClosestLineStopPairs(
-    allDepartures,
-    userLocation
-  );
+  let closestLineStops = getClosestLineStopPairs(allDepartures, userLocation);
 
-  return allDepartures.filter((d: Departure) =>
-    closestLineStopPairs.find(
-      (lineStopPair) =>
-        lineStopPair.stopId === d.stop.id && lineStopPair.lineId === d.line.id
+  const closestLinePromises = closestLineStops.map(async (lineStopPair) => {
+    const directionsResponse = await mapsClient.directions({
+      params: {
+        key: "AIzaSyB90LChhhQpdYIbBBaDjrybtvR2UKdRQbM",
+        origin: { latitude, longitude },
+        destination: lineStopPair.stop.location,
+        mode: TravelMode.walking,
+      },
+    });
+
+    const walkingDuration =
+      directionsResponse.data.routes[0].legs[0].duration.value;
+
+    return { ...lineStopPair, walkingDuration };
+  });
+
+  closestLineStops = await Promise.all(closestLinePromises);
+
+  return allDepartures
+    .filter((d: Departure) =>
+      closestLineStops.find(
+        (lineStopPair) =>
+          lineStopPair.stop.id === d.stop.id &&
+          lineStopPair.lineId === d.line.id
+      )
     )
-  );
+    .map((d: Departure) => {
+      const lineStop = closestLineStops.find(
+        (lineStopPair) =>
+          lineStopPair.stop.id === d.stop.id &&
+          lineStopPair.lineId === d.line.id
+      );
+      return { ...d, walkingDuration: lineStop.walkingDuration };
+    });
 }
